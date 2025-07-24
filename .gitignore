@@ -1,15 +1,15 @@
 # ----------------------------------------
-# 🐍 Python Backend (in Backend/)
+#  Python Backend (in Backend/)
 # ----------------------------------------
 Backend/venv/
 Backend/__pycache__/
-Backend/model/
+# Backend/model/
 Backend/*.py[cod]
 Backend/*.sqlite3
 Backend/.env
 
 # ----------------------------------------
-# ⚛️ React Frontend (in Frontend/)
+#  React Frontend (in Frontend/)
 # ----------------------------------------
 Frontend/node_modules/
 Frontend/dist/
@@ -21,7 +21,7 @@ Frontend/.env.test.local
 Frontend/.env.production.local
 
 # ----------------------------------------
-# 🧪 Common Log Files
+#  Common Log Files
 # ----------------------------------------
 *.log
 logs/
@@ -31,7 +31,7 @@ yarn-error.log*
 pnpm-debug.log*
 
 # ----------------------------------------
-# 🛠 Editor Config Files
+#  Editor Config Files
 # ----------------------------------------
 .vscode/
 !.vscode/extensions.json
