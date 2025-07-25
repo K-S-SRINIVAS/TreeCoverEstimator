@@ -57,7 +57,7 @@ model = smp.Unet(
     classes=1,
     activation=None,
 )
-checkpoint = torch.load("model/unet_model.pth", map_location=device)
+checkpoint = torch.load("model/unet_model.pth", map_location=device, weights_only=False)
 model.load_state_dict(checkpoint['model_state_dict'])
 model.to(device)
 model.eval()
