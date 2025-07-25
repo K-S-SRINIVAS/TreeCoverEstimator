@@ -77,7 +77,7 @@ def predict_patch(image):
 
     transform = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225])
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
     ])
     x = transform(image).unsqueeze(0).to(device)
     with torch.no_grad():
@@ -86,12 +86,42 @@ def predict_patch(image):
     mask = (y.squeeze().cpu().numpy() > 0.1).astype(np.uint8) * 255
     return Image.fromarray(mask)
 
+# def predict_patch(image):
+#     from torchvision import transforms
+#     transform = transforms.Compose([
+#         transforms.ToTensor(),
+#         transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
+#     ])
+#     x = transform(image).unsqueeze(0).to(device)
+
+#     with torch.no_grad():
+#         y = model(x)
+#         y = torch.sigmoid(y)
+#         print("Model output range:", y.min().item(), y.max().item())
+
+#     mask = (y.squeeze().cpu().numpy() > 0.1).astype(np.uint8) * 255
+#     mask_img = Image.fromarray(mask)
+
+#     # --- Save debug images ---
+#     os.makedirs("debug_tiles", exist_ok=True)
+#     debug_name = uuid.uuid4().hex
+#     image.save(f"debug_tiles/{debug_name}_tile.png")
+#     mask_img.save(f"debug_tiles/{debug_name}_mask.png")
+
+#     # Create side-by-side comparison (tile + mask)
+#     combined = Image.new("RGB", (PATCH_SIZE_PX * 2, PATCH_SIZE_PX))
+#     combined.paste(image.resize((PATCH_SIZE_PX, PATCH_SIZE_PX)), (0, 0))
+#     combined.paste(mask_img.convert("RGB"), (PATCH_SIZE_PX, 0))
+#     combined.save(f"debug_tiles/{debug_name}_combined.png")
+
+#     return mask_img
+
 # -------------------------------
 # --- API Route ---
 # -------------------------------
 @app.get("/predict")
 async def predict(north: float, south: float, east: float, west: float):
-    zoom = 19  # fixed for good resolution
+    zoom = 18  # fixed for good resolution
 
     # --- 1) Compute center & patch grid ---
     lat_steps = math.ceil(abs(north - south) / 0.0005)  # adjust this factor to match zoom level meters
