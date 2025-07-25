@@ -5,3 +5,4 @@ segmentation-models-pytorch
 Pillow
 requests
 numpy
+gunicorn
