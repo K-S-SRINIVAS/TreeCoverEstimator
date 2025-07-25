@@ -25,13 +25,17 @@ GOOGLE_MAPS_API_KEY ='AIzaSyCULvGx6a1bD3axVuNneZV8mMfDDvM3i1Q'   # Replace with 
 print("✅ Loaded API key:", GOOGLE_MAPS_API_KEY)
 PATCH_SIZE_PX = 256  # must match your training patch size
 
-OVERLAY_DIR = "static/overlays"
+OVERLAY_DIR = "/tmp/overlays"
 os.makedirs(OVERLAY_DIR, exist_ok=True)
 
 # -------------------------------
 # --- Init FastAPI ---
 # -------------------------------
 app = FastAPI()
+from fastapi.staticfiles import StaticFiles
+
+app.mount("/files", StaticFiles(directory=OVERLAY_DIR), name="files")
+
 
 # CORS for local dev:
 app.add_middleware(
@@ -151,7 +155,7 @@ async def predict(north: float, south: float, east: float, west: float):
 
     # --- 5) Return response ---
     response = {
-        "overlay_url": f"/static/overlays/{overlay_filename}",
+        "overlay_url": f"/files/{overlay_filename}",
         "bounds": [[south, west], [north, east]],
         "percent_green_cover": percent_green
     }
@@ -161,8 +165,6 @@ async def predict(north: float, south: float, east: float, west: float):
 # -------------------------------
 # --- Static Files ---
 # -------------------------------
-from fastapi.staticfiles import StaticFiles
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # -------------------------------
 # --- Run ---
