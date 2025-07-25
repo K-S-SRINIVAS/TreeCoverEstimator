@@ -1,8 +1,9 @@
 fastapi
 uvicorn
 torch
+torchvision
 segmentation-models-pytorch
-Pillow
+pillow
 requests
 numpy
 gunicorn
