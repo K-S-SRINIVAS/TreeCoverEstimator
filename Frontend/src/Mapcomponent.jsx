@@ -6,7 +6,7 @@ const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 const mapContainerStyle = {
   width: '800px',
-  height: '400px',
+  height: '600px',
 };
 
 const center = {
@@ -39,7 +39,7 @@ export default function MapComponent({ onAnalyze, overlayData }) {
       setZoomLevel(currentZoom);
 
       if (overlayRef.current) {
-        if (currentZoom === 19) {
+        if (currentZoom === 20) {
           overlayRef.current.setMap(mapInstance);
         } else {
           overlayRef.current.setMap(null);
@@ -116,7 +116,7 @@ export default function MapComponent({ onAnalyze, overlayData }) {
         { opacity: 0.5 }
       );
 
-      if (zoomLevel === 19) {
+      if (zoomLevel === 20) {
         overlay.setMap(mapInstance);
       }
 
@@ -157,6 +157,12 @@ export default function MapComponent({ onAnalyze, overlayData }) {
           options={{
             mapTypeControl: false,
             streetViewControl: false,
+            styles: [ {
+                    featureType: 'all',
+                    elementType: 'labels',
+                    stylers: [{ visibility: 'off' }],
+            },
+            ],
           }}
           onLoad={handleMapLoad}
           onZoomChanged={handleZoomChanged}

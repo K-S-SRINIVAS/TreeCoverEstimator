@@ -12,6 +12,9 @@ from PIL import Image
 import numpy as np
 import torch
 import segmentation_models_pytorch as smp
+import zipfile
+import torch
+
 # from dotenv import load_dotenv
 
 # load_dotenv()  # 👈 THIS is what reads your .env file
@@ -76,63 +79,75 @@ def fetch_tile(lat, lng, zoom, size=PATCH_SIZE_PX):
     else:
         raise Exception(f"Failed to fetch tile: {response.text}")
 
-def predict_patch(image):
-    from torchvision import transforms
-
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
-    ])
-    x = transform(image).unsqueeze(0).to(device)
-    with torch.no_grad():
-        y = model(x)
-        y = torch.sigmoid(y)
-    mask = (y.squeeze().cpu().numpy() > 0.1).astype(np.uint8) * 255
-    return Image.fromarray(mask)
-
 # def predict_patch(image):
 #     from torchvision import transforms
+
 #     transform = transforms.Compose([
 #         transforms.ToTensor(),
 #         transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
 #     ])
 #     x = transform(image).unsqueeze(0).to(device)
-
 #     with torch.no_grad():
 #         y = model(x)
 #         y = torch.sigmoid(y)
-#         print("Model output range:", y.min().item(), y.max().item())
-
 #     mask = (y.squeeze().cpu().numpy() > 0.1).astype(np.uint8) * 255
-#     mask_img = Image.fromarray(mask)
+#     return Image.fromarray(mask)
 
-#     # --- Save debug images ---
-#     os.makedirs("debug_tiles", exist_ok=True)
-#     debug_name = uuid.uuid4().hex
-#     image.save(f"debug_tiles/{debug_name}_tile.png")
-#     mask_img.save(f"debug_tiles/{debug_name}_mask.png")
+def predict_patch(image):
+    from torchvision import transforms
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
+    ])
+    x = transform(image).unsqueeze(0).to(device)
 
-#     # Create side-by-side comparison (tile + mask)
-#     combined = Image.new("RGB", (PATCH_SIZE_PX * 2, PATCH_SIZE_PX))
-#     combined.paste(image.resize((PATCH_SIZE_PX, PATCH_SIZE_PX)), (0, 0))
-#     combined.paste(mask_img.convert("RGB"), (PATCH_SIZE_PX, 0))
-#     combined.save(f"debug_tiles/{debug_name}_combined.png")
+    with torch.no_grad():
+        y = model(x)
+        y = torch.sigmoid(y)
+        print("Model output range:", y.min().item(), y.max().item())
 
-#     return mask_img
+    mask = (y.squeeze().cpu().numpy() > 0.1).astype(np.uint8) * 255
+    mask_img = Image.fromarray(mask)
+
+    # --- Save debug images ---
+    os.makedirs("debug_tiles", exist_ok=True)
+    debug_name = uuid.uuid4().hex
+    image.save(f"debug_tiles/{debug_name}_tile.png")
+    mask_img.save(f"debug_tiles/{debug_name}_mask.png")
+
+    # Create side-by-side comparison (tile + mask)
+    combined = Image.new("RGB", (PATCH_SIZE_PX * 2, PATCH_SIZE_PX))
+    combined.paste(image.resize((PATCH_SIZE_PX, PATCH_SIZE_PX)), (0, 0))
+    combined.paste(mask_img.convert("RGB"), (PATCH_SIZE_PX, 0))
+    combined.save(f"debug_tiles/{debug_name}_combined.png")
+
+    return mask_img
 
 # -------------------------------
 # --- API Route ---
 # -------------------------------
 @app.get("/predict")
 async def predict(north: float, south: float, east: float, west: float):
-    zoom = 18  # fixed for good resolution
+    zoom = 20  # fixed for good resolution
+    
+    area_per_pixel=0.0194
+    step_deg = 0.0002976  # For Durg, zoom=20, 256x256 tile
+    
+    # Offset so tiles stay *inside* AOI
+    start_lat = south + step_deg / 2
+    end_lat = north - step_deg / 2
+    start_lng = west + step_deg / 2
+    end_lng = east - step_deg / 2
 
-    # --- 1) Compute center & patch grid ---
-    lat_steps = math.ceil(abs(north - south) / 0.0005)  # adjust this factor to match zoom level meters
-    lng_steps = math.ceil(abs(east - west) / 0.0005)
-    lat_list = np.linspace(south, north, lat_steps)
-    lng_list = np.linspace(west, east, lng_steps)
+    lat_steps = math.ceil(abs(end_lat - start_lat) / step_deg)
+    lng_steps = math.ceil(abs(end_lng - start_lng) / step_deg)
 
+    lat_list = np.linspace(start_lat, end_lat, lat_steps)
+    lng_list = np.linspace(start_lng, end_lng, lng_steps)
+
+
+    print("lat",lat_list)
+    print("long",lng_list)
     # --- 2) Fetch tiles and predict ---
     stitched_image = Image.new("L", (lng_steps * PATCH_SIZE_PX, lat_steps * PATCH_SIZE_PX))
     green_pixels = 0
@@ -154,10 +169,17 @@ async def predict(north: float, south: float, east: float, west: float):
     percent_green = round((green_pixels / total_pixels) * 100, 2)
 
     # --- 5) Return response ---
+    # Compute actual bounds of the stitched image
+    actual_south = start_lat - step_deg / 2
+    actual_north = end_lat + step_deg / 2
+    actual_west  = start_lng - step_deg / 2
+    actual_east  = end_lng + step_deg / 2
+
+    # Return corrected bounds
     response = {
-        "overlay_url": f"/files/{overlay_filename}",
-        "bounds": [[south, west], [north, east]],
-        "percent_green_cover": percent_green
+    "overlay_url": f"/files/{overlay_filename}",
+    "bounds": [[actual_south, actual_west], [actual_north, actual_east]],
+    "percent_green_cover": green_pixels*area_per_pixel
     }
 
     return JSONResponse(content=response)
