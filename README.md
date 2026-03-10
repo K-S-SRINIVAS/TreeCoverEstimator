@@ -1,7 +1,7 @@
 # Tree Cover Estimator
 
 This project detects trees from satellite images using a deep learning model and calculates the total tree cover area.  
-It provides a simple interface to visualize detected trees and understand green cover in a selected area.
+It provides a simple interface to visualize detected trees and measure green cover in a selected area.
 
 ## Project Overview
 The application combines a Python backend (with a U-Net based deep learning model) and a React frontend.  
